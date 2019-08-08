@@ -2122,12 +2122,13 @@ static void bfq_add_request(struct request *rq)
 		 * confirmed no later than during the next
 		 * I/O-plugging interval for bfqq.
 		 */
-		if (!bfq_bfqq_has_short_ttime(bfqq) &&
+		if (bfqd->last_completed_rq_bfqq &&
+                    !bfq_bfqq_has_short_ttime(bfqq) &&
 		    ktime_get_ns() - bfqd->last_completion <
 		    200 * NSEC_PER_USEC) {
 			if (bfqd->last_completed_rq_bfqq != bfqq &&
-				   bfqd->last_completed_rq_bfqq !=
-				   bfqq->waker_bfqq) {
+                            bfqd->last_completed_rq_bfqq !=
+                            bfqq->waker_bfqq) {
 				/*
 				 * First synchronization detected with
 				 * a candidate waker queue, or with a
@@ -5392,7 +5393,11 @@ void bfq_put_queue(struct bfq_queue *bfqq)
 	bfq_log_bfqq(bfqq->bfqd, bfqq, "putting blkg and bfqg %p\n", bfqg);
 	bfqg_and_blkg_put(bfqg);
 #endif
-	kmem_cache_free(bfq_pool, bfqq);
+	
+        if (bfqq->bfqd && bfqq->bfqd->last_completed_rq_bfqq == bfqq)
+		bfqq->bfqd->last_completed_rq_bfqq = NULL;
+        
+        kmem_cache_free(bfq_pool, bfqq);
 }
 
 static void bfq_put_cooperator(struct bfq_queue *bfqq)
