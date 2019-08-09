@@ -2499,13 +2499,8 @@ static void bfq_request_merged(struct request_queue *q, struct request *req,
 	    blk_rq_pos(container_of(rb_prev(&req->rb_node),
 				    struct request, rb_node))) {
 		struct bfq_queue *bfqq = bfq_init_rq(req);
-		struct bfq_data *bfqd;
+		struct bfq_data *bfqd = bfqq->bfqd;
 		struct request *prev, *next_rq;
-                
-                if (!bfqq)
-			return;
-
-		bfqd = bfqq->bfqd;
 
 		/* Reposition request in its sort_list */
 		elv_rb_del(&bfqq->sort_list, req);
@@ -2561,9 +2556,6 @@ static void bfq_requests_merged(struct request_queue *q, struct request *rq,
 {
 	struct bfq_queue *bfqq = bfq_init_rq(rq),
 		*next_bfqq = bfq_init_rq(next);
-                
-        if (!bfqq)
-		return;
 
 	BFQ_BUG_ON(!RQ_BFQQ(rq));
 	BFQ_BUG_ON(!RQ_BFQQ(next)); /* this does not imply next is in a bfqq */
@@ -6059,7 +6051,7 @@ static void bfq_insert_request(struct blk_mq_hw_ctx *hctx, struct request *rq,
 	BFQ_BUG_ON(!bfqq && !(at_head || blk_rq_is_passthrough(rq)));
 	BFQ_BUG_ON(bfqq && bic_to_bfqq(RQ_BIC(rq), rq_is_sync(rq)) != bfqq);
 
-	if (!bfqq || at_head || blk_rq_is_passthrough(rq)) {
+	if (at_head || blk_rq_is_passthrough(rq)) {
 		if (at_head)
 			list_add(&rq->queuelist, &bfqd->dispatch);
 		else
@@ -6074,7 +6066,7 @@ static void bfq_insert_request(struct blk_mq_hw_ctx *hctx, struct request *rq,
 			bfq_log(bfqd,
 				"%p in disp: at_head %d",
 				rq, at_head);
-	} else {
+	} else { /* bfqq is assumed to be non null here */
 		BFQ_BUG_ON(!bfqq);
 		BFQ_BUG_ON(!(rq->rq_flags & RQF_GOT));
 		rq->rq_flags &= ~RQF_GOT;
