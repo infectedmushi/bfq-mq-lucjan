@@ -632,6 +632,7 @@ struct bfq_group *bfq_find_set_group(struct bfq_data *bfqd,
 	for_each_entity(entity) {
 		struct bfq_group *curr_bfqg = container_of(entity,
 						struct bfq_group, entity);
+		BFQ_BUG_ON(!curr_bfqg);
 		if (curr_bfqg != bfqd->root_group) {
 			parent = bfqg_parent(curr_bfqg);
 			if (!parent)
