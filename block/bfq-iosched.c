@@ -1149,6 +1149,17 @@ static int bfqq_process_refs(struct bfq_queue *bfqq)
 	io_refs = bfqq->allocated;
 	process_refs = bfqq->ref - io_refs - bfqq->entity.on_st_or_in_serv -
 		(bfqq->weight_counter != NULL);
+
+	if (bfqq->proc_ref > process_refs) {
+		pr_crit("ref %d proc_ref %d computed %d",
+			bfqq->ref, bfqq->proc_ref, process_refs);
+		pr_crit("allocated %d on_st %d weight_counter %d",
+			bfqq->allocated, bfqq->entity.on_st_or_in_serv,
+			(bfqq->weight_counter != NULL));
+
+		BFQ_BUG_ON(true);
+	}
+
 	BFQ_BUG_ON(process_refs < 0);
 	return process_refs;
 }
@@ -3030,6 +3041,7 @@ void bfq_release_process_ref(struct bfq_data *bfqd, struct bfq_queue *bfqq)
 	    bfqq != bfqd->in_service_queue)
 		bfq_del_bfqq_busy(bfqd, bfqq, false);
 
+	bfqq->proc_ref--;
 	bfq_put_queue(bfqq);
 }
 
@@ -5415,6 +5427,8 @@ void bfq_put_queue(struct bfq_queue *bfqq)
 		bfq_log_bfqq(bfqq->bfqd, bfqq, "%p %d", bfqq, bfqq->ref);
 
 	bfqq->ref--;
+	bfqq_process_refs(bfqq); // DEBUG: check process ref consistency
+
 	if (bfqq->ref)
 		return;
 
@@ -5783,6 +5797,7 @@ static struct bfq_queue *bfq_get_queue(struct bfq_data *bfqd,
 	}
 
 out:
+	bfqq->proc_ref++; /* get a process reference to this queue */
 	bfqq->ref++; /* get a process reference to this queue */
 	bfq_log_bfqq(bfqd, bfqq, "at end: %p, %d", bfqq, bfqq->ref);
 	rcu_read_unlock();
@@ -7222,6 +7237,7 @@ static int bfq_init_queue(struct request_queue *q, struct elevator_type *e)
 	 * will not attempt to free it.
 	 */
 	bfq_init_bfqq(bfqd, &bfqd->oom_bfqq, NULL, 1, 0);
+	bfqd->oom_bfqq.proc_ref++;
 	bfqd->oom_bfqq.ref++;
 	bfqd->oom_bfqq.new_ioprio = BFQ_DEFAULT_QUEUE_IOPRIO;
 	bfqd->oom_bfqq.new_ioprio_class = IOPRIO_CLASS_BE;

@@ -230,6 +230,8 @@ struct bfq_ttime {
 struct bfq_queue {
 	/* reference counter */
 	int ref;
+	/* DEBUG: process ref counter */
+	int proc_ref;
 	/* parent bfq_data */
 	struct bfq_data *bfqd;
 
