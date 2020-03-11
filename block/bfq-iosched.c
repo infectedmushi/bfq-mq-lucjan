@@ -3294,6 +3294,7 @@ static struct bfq_queue *bfq_set_in_service_queue(struct bfq_data *bfqd)
 	struct bfq_queue *bfqq = bfq_get_next_queue(bfqd);
 
 	__bfq_set_in_service_queue(bfqd, bfqq);
+	BFQ_BUG_ON(bfqq && !bfqq->entity.on_st_or_in_serv);
 	return bfqq;
 }
 
@@ -3880,6 +3881,8 @@ static bool __bfq_bfqq_expire(struct bfq_data *bfqd, struct bfq_queue *bfqq,
 			      enum bfqq_expiration reason)
 {
 	BFQ_BUG_ON(bfqq != bfqd->in_service_queue);
+	BFQ_BUG_ON(!bfqq->entity.on_st_or_in_serv);
+	bfqq_process_refs(bfqq); // DEBUG: check process refs consistency
 
 	/*
 	 * If this bfqq is shared between multiple processes, check
