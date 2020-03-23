@@ -664,6 +664,12 @@ void bfq_bfqq_move(struct bfq_data *bfqd, struct bfq_queue *bfqq,
 {
 	struct bfq_entity *entity = &bfqq->entity;
 
+	/*
+	 * Get extra reference to prevent bfqq from being freed in
+	 * next possible expire or deactivate.
+	 */
+	bfqq->ref++;
+
 	BFQ_BUG_ON(!bfq_bfqq_busy(bfqq) && !RB_EMPTY_ROOT(&bfqq->sort_list));
 	BFQ_BUG_ON(!RB_EMPTY_ROOT(&bfqq->sort_list) &&
 		   !entity->on_st_or_in_serv);
@@ -682,12 +688,6 @@ void bfq_bfqq_move(struct bfq_data *bfqd, struct bfq_queue *bfqq,
 	BFQ_BUG_ON(entity->on_st_or_in_serv && !bfq_bfqq_busy(bfqq)
 	    && &bfq_entity_service_tree(entity)->idle !=
 	       entity->tree);
-
-	/*
-	 * get extra reference to prevent bfqq from being freed in
-	 * next possible deactivate
-	 */
-	bfqq->ref++;
 
 	if (bfq_bfqq_busy(bfqq))
 		bfq_deactivate_bfqq(bfqd, bfqq, false, false);
@@ -718,7 +718,7 @@ void bfq_bfqq_move(struct bfq_data *bfqd, struct bfq_queue *bfqq,
 	BFQ_BUG_ON(entity->on_st_or_in_serv && !bfq_bfqq_busy(bfqq)
 	       && &bfq_entity_service_tree(entity)->idle !=
 	       entity->tree);
-	/* release extra ref taken above */
+	/* release extra ref taken above, bfqq may happen to be freed now */
 	bfq_put_queue(bfqq);
 }
 
