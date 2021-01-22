@@ -8292,7 +8292,7 @@ MODULE_ALIAS("bfq-iosched");
 static int __init bfq_init(void)
 {
 	int ret;
-	char msg[60] = "BFQ-dev I/O-scheduler: v11";
+	char msg[60] = "BFQ-dev I/O-scheduler: v15";
 
 #ifdef CONFIG_BFQ_GROUP_IOSCHED
 	ret = blkcg_policy_register(&blkcg_policy_bfq);
