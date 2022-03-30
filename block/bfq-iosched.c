@@ -6044,7 +6044,7 @@ void bfq_put_queue(struct bfq_queue *bfqq)
 	__bfq_put_queue(bfqq);
 }
 
-static void bfq_put_cooperator(struct bfq_queue *bfqq)
+void bfq_put_cooperator(struct bfq_queue *bfqq)
 {
 	struct bfq_queue *__bfqq, *next;
 
