@@ -6998,11 +6998,8 @@ static void bfq_insert_request(struct blk_mq_hw_ctx *hctx, struct request *rq,
 		return;
 	}
 
-	spin_unlock_irq(&bfqd->lock);
-
 	trace_block_rq_insert(rq);
 
-	spin_lock_irq(&bfqd->lock);
 	// XXX next function also takes a lock on bfqq
 	bfqq = bfq_init_rq(rq);
 
