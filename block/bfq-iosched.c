@@ -2424,7 +2424,11 @@ static void bfq_add_request(struct request *rq)
 			bfqq->entity.weight, bfqq->entity.orig_weight);
 
 	bfqq->queued[rq_is_sync(rq)]++;
-	bfqd->queued++;
+	/*
+	 * Updating of 'bfqd->queued' is protected by 'bfqd->lock', however, it
+	 * may be read without holding the lock in bfq_has_work().
+	 */
+	WRITE_ONCE(bfqd->queued, bfqd->queued + 1);
 	bfq_log_bfqq(bfqd, bfqq, "new in-bfqq[%d] %d, in-bfqd %d",
 		     rq_is_sync(rq), bfqq->queued[rq_is_sync(rq)],
 		     bfqd->queued);
@@ -2667,7 +2671,11 @@ static void bfq_remove_request(struct request_queue *q,
 	BFQ_BUG_ON(bfqd->queued == 0);
 
 	bfqq->queued[sync]--;
-	bfqd->queued--;
+	/*
+	 * Updating of 'bfqd->queued' is protected by 'bfqd->lock', however, it
+	 * may be read without holding the lock in bfq_has_work().
+	 */
+	WRITE_ONCE(bfqd->queued, bfqd->queued - 1);
 	bfq_log_bfqq(bfqd, bfqq, "%p in-bfqq[%d] %d in-bfqd %d",
 		     rq, sync, bfqq->queued[sync], bfqd->queued);
 	elv_rb_del(&bfqq->sort_list, rq);
@@ -5719,11 +5727,11 @@ static bool bfq_has_work(struct blk_mq_hw_ctx *hctx)
 		bfq_tot_busy_queues(bfqd) > 0);
 
 	/*
-	 * Avoiding lock: a race on bfqd->busy_queues should cause at
+	 * Avoiding lock: a race on bfqd->queued should cause at
 	 * most a call to dispatch for nothing
 	 */
 	return !list_empty_careful(&bfqd->dispatch) ||
-		bfq_tot_busy_queues(bfqd) > 0;
+		READ_ONCE(bfqd->queued);
 }
 
 static struct request *__bfq_dispatch_request(struct blk_mq_hw_ctx *hctx)
